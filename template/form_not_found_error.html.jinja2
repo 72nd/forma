@@ -1,0 +1,16 @@
+{% extends "base.html.jinja2" %}
+{% block content %}
+<div class="content">
+    <section>
+        <h1>404: Formular exisitert nicht / Form not found</h1>
+        <p>
+            Das System kann kein Formular für »{{ requested_ident }}« finden. Bitte stell sicher, dass du den Link
+            korrekt kopiert hast und versuche es erneut.
+        </p>
+        <p>
+            There is no form for the identifier »{{ requested_ident }}«. Please make sure the link you've copied is
+            correct.
+        </p>
+    </section>
+</div>
+{% endblock %}

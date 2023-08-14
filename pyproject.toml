@@ -1,0 +1,23 @@
+[project]
+name = "forma"
+authors = [
+    {name = "72nd", email = "msg@72nd.com"}
+]
+description = "Beautiful Forms for NocoDB"
+version = "0.1.0"
+dependencies = [
+    "fastapi",
+    "Jinja2",
+    "nocodb@git+https://github.com/alex-berlin-tv/python-nocodb.git#egg=relation_create",
+    "pydantic",
+    "typed-settings",
+    "typer",
+    "typing_extensions",
+    "uvicorn",
+]
+
+[tool.setuptools]
+packages = ["forma"]
+
+[project.scripts]
+forma = "forma:__main__.app"

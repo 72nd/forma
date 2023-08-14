@@ -1,0 +1,5 @@
+[forma]
+port = 8000
+forms = [
+    "test.yaml"
+]

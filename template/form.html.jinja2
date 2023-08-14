@@ -1,0 +1,250 @@
+{% extends "base.html.jinja2" %}
+{% block head %}
+<script src="{{ url_for('static', path='/js/alpine.min.js') }}" defer></script>
+{% endblock %}
+{% block navbar_content %}
+<div class="navbar-end" x-show="data_loaded">
+    <div class="navbar-item has-dropdown is-hoverable">
+        <a class="navbar-link">
+            <i class="fa-regular fa-flag mx-2"></i> Language
+        </a>
+        <div class="navbar-dropdown">
+            <template x-for="value, key in form.languages">
+                <a class="navbar-item" x-text="value" @click="current_language=key"></a>
+            </template>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block body_args %}
+x-data="data()" x-init="fetch_data()"
+{% endblock %}
+{% block content %}
+<div class="content">
+    <div class="notification is-warning" x-show="!data_loaded">
+        Bitte warten, Daten werden geladen... / Please wait while the data is loaded...
+    </div>
+    <div x-show="data_loaded" x-if="form">
+        <h1 x-text="localize(form.title)"></h1>
+        <p x-text="localize(form.text_top)"></p>
+        <form>
+            <template x-for="field in form.fields">
+                <div class="field">
+                    <label class="label" x-text="localize(field.title)"></label>
+                    <div
+                        :class="`control ${field.icon ? 'has-icons-left' :''} ${check(field) ? 'has-icons-right' : ''}`">
+                        <template x-if="field.type === 'single_line_text'">
+                            <input :class="`input ${check(field) ? 'is-danger' : ''}`" x-model="field.value" type="text"
+                                :placeholder="localize(field.placeholder)" :value="field.default ? field.default : null"
+                                :minlength="field.min_length" :maxlength="field.max_length">
+                        </template>
+                        <template x-if="field.type === 'number'">
+                            <input :class="`input ${check(field) ? 'is-danger' : ''}`" type="number" :placeholder="localize(field.placeholder)"
+                                :value="field.default ? field.default : null" :step="field.step ? field.step : 1" :min="field.min_value" :max="field.max_value">
+                        </template>
+                        <template x-if="field.type === 'decimal'">
+                            <input class="input" type="number" :placeholder="localize(field.placeholder)"
+                                :value="field.default ? field.default : null" :step="field.step ? field.step : 0.1" :min="field.min_value" :max="field.max_value">
+                        </template>
+
+                        <p class="help">
+                            <span x-text="add_dot(localize(field.description))"></span>
+                            <i><span x-text="constraint_help(field)"></span></i>
+                        </p>
+                        <template x-if="field.icon">
+                            <span class="icon is-small is-left">
+                                <i :class="field.icon"></i>
+                            </span>
+                        </template>
+                        <template x-if="check(field)">
+                            <span class="icon is-small is-right">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </span>
+                        </template>
+                    </div>
+                    <p class="help is-danger" x-text="check_str(field)"></p>
+                </div>
+                <template x-if="field.type === 'paragraph'">
+                    <h2 x-text="localize(field.title)"></h2>
+                    <p x-text="localize(field.description)"></p>
+                </template>
+            </template>
+            <div class="field is-grouped">
+                <div class="control">
+                    <button class="button is-link" x-text="localize_control('submit')"></button>
+                </div>
+                <div class="control">
+                    <button class="button is-link is-light" x-text="localize_control('cancel')"></button>
+                </div>
+            </div>
+        </form>
+        <p class="mt-5" x-text="localize(form.text_bottom)"></p>
+    </div>
+</div>
+{% endblock %}
+{% block script_footer %}
+<script>
+    function data() {
+        return {
+            data_loaded: false,
+            form: [],
+            current_language: null,
+            show_required_error: false,
+            localize_strings: {
+                "submit": {
+                    "en": "Submit",
+                    "de": "Senden",
+                    "fr": "Envoyer",
+                },
+                "cancel": {
+                    "en": "Cancel",
+                    "de": "Abbrechen",
+                    "fr": "Annuler",
+                },
+                "required": {
+                    "en": "required",
+                    "de": "verplichtend",
+                },
+                "min_length": {
+                    "en": "at least $value chars",
+                    "de": "mindestens $value Zeichen lang",
+                },
+                "max_length": {
+                    "en": "not more than $value chars",
+                    "de": "maximal $value Zeichen lang",
+                },
+                "min_max_length": {
+                    "en": "length has to be between $min and $max chars",
+                    "de": "Textlänge muss zwischen $min und $max Zeichen liegen",
+                },
+                "min_value": {
+                    "en": "$value is minimal value",
+                    "de": "Wert darf nicht kleiner als $value sein",
+                },
+                "max_value": {
+                    "en": "value has to be below $value",
+                    "de": "Wert darf nicht größer alse $value sein",
+                },
+                "min_max_value": {
+                    "en": "value has to be between $min and $max",
+                    "de": "Wert muss zwischen $min und $max liegen",
+                },
+                "required_error": {
+                    "en": "this field has to be filled.",
+                    "de": "dieses Feld muss ausgefüllt sein.",
+                },
+                "min_length_error": {
+                    "en": "the content of this field has to be at least $value chars long.",
+                    "de": "der Inhalt dieses Feldes muss mindestens $value Zeichen lang sein.",
+                },
+            },
+            fetch_data() {
+                fetch("../api/form/{{ident}}")
+                    .then(res => res.json())
+                    .then(data => {
+                        this.data_loaded = true;
+                        this.current_language = data.default_language;
+                        for (let i = 0; i < data.fields.length; i++) {
+                            data.fields[i].value = null;
+                        }
+                        this.form = data;
+                    });
+            },
+            localize(text) {
+                if (text === null || typeof (text) === "undefined") {
+                    return null;
+                }
+                if (typeof (text) === "object") {
+                    return text[this.current_language];
+                } else if (typeof (text) === "string") {
+                    return text;
+                } else {
+                    console.error(`localize() got unsupported type ${typeof (text)} (content: '${text}'')`)
+                }
+            },
+            localize_control(key) {
+                var language = this.current_language;
+                if (!(language in this.localize_strings[key])) {
+                    language = "en";
+                }
+                return this.localize_strings[key][language]
+            },
+            add_dot(value) {
+                if (!value.endsWith(".")) {
+                    return `${value}.`;
+                }
+                return value;
+            },
+            constraint_help(field) {
+                var rsl = "";
+                if (field.required) {
+                    rsl = message_append(rsl, this.localize_control("required"));
+                }
+                if (field.min_length && field.max_length) {
+                    var msg = this.localize_control("min_max_length");
+                    msg = msg.replace("$min", field.min_length);
+                    msg = msg.replace("$max", field.max_length);
+                    rsl = message_append(rsl, msg);
+                } else if (field.min_length) {
+                    rsl = message_append(rsl, this.localize_control("min_length").replace("$value", field.min_length));
+                } else if (field.max_length) {
+                    rsl = message_append(rsl, this.localize_control("max_length").replace("$value", field.max_length));
+                }
+                if (field.min_value && field.max_value) {
+                    var msg = this.localize_control("min_max_value");
+                    msg = msg.replace("$min", field.min_value);
+                    msg = msg.replace("$max", field.max_value);
+                    rsl = message_append(rsl, msg);
+                } else if (field.min_value) {
+                    rsl = message_append(rsl, this.localize_control("min_value").replace("$value", field.min_value));
+                } else if (field.max_value) {
+                    rsl = message_append(rsl, this.localize_control("max_value").replace("$value", field.max_value));
+                }
+
+                if (rsl.length === 0) {
+                    return ""
+                }
+                return `${rsl}.`;
+            },
+            check(field) {
+                var rsl = false;
+                if (field.type === "single_line_text") {
+                    if (!field.value && field.required) {
+                        rsl = {
+                            msg: this.localize_control("required_error"),
+                            required: true,
+                        };
+                    } else if (field.value && field.min_length && field.value.length < field.min_length) {
+                        rsl = {
+                            msg: this.localize_control("min_length_error").replace("$value", field.min_length),
+                            required: false,
+                        };
+                    }
+                    console.log(field.value)
+                    console.log(typeof(field.value))
+                    if (field.value && field.min_value && field.value < field.min_value) {
+                        rsl = {
+                            msg: this.localize_control("min_value_error").replace("$value", field.min_value),
+                            required: false,
+                        };
+                    }
+                }
+                return rsl;
+            },
+            check_str(field) {
+                const check = this.check(field);
+                if (check && !check.required) {
+                    return check.msg;
+                }
+                return null;
+            }
+        }
+    }
+    function message_append(base, chunk) {
+        if (base.length === 0) {
+            return chunk.charAt(0).toUpperCase() + chunk.slice(1);
+        } 
+        return `${base}, ${chunk}`
+    }
+</script>
+{% endblock %}
