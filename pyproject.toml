@@ -10,6 +10,7 @@ dependencies = [
     "Jinja2",
     "nocodb@git+https://github.com/alex-berlin-tv/python-nocodb.git#egg=relation_create",
     "pydantic",
+    "pydantic-yaml",
     "typed-settings",
     "typer",
     "typing_extensions",

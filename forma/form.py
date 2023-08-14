@@ -1,3 +1,4 @@
+from dataclasses import field
 from .config import settings
 
 from enum import Enum
@@ -5,8 +6,9 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 from fastapi import Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from pydantic import Field as PdField
+from pydantic_core import PydanticCustomError
 from pydantic_yaml import parse_yaml_file_as, to_yaml_file
 
 LocStr = Union[str, dict[str, str]]
@@ -84,6 +86,14 @@ class Type(str, Enum):
     """Defines a paragraph of text in the form. Content is title as heading and description"""
 
 
+IMPLEMENTED_FIELD_TYPES: list[Type] = [
+    Type.SINGLE_LINE_TEXT,
+    Type.NUMBER,
+    Type.DECIMAL,
+    Type.PARAGRAPH,
+]
+
+
 class Field(BaseModel):
     name: str
     field_type: Type = PdField(alias="type")
@@ -100,7 +110,17 @@ class Field(BaseModel):
     step: Optional[float] = None
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
+
+    @field_validator("field_type")
+    def allow_only_implemented_field_types(cls, v: Type):
+        if v not in IMPLEMENTED_FIELD_TYPES:
+            raise PydanticCustomError(
+                "field_type_not_implemented",
+                "{name} not (yet) supported by forma",
+                {"name": v.value}
+            )
+        return v
 
     @classmethod
     def single_line_text_example(cls) -> "Field":
